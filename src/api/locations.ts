@@ -4,7 +4,7 @@ import type { LocationDto } from '@/types/dto';
 import type { Page, PageParams } from '@/types/api';
 import { buildPageParams } from '@/utils/pageParams';
 
-const BASE = '/location';
+const BASE = '/api/v1/locations';
 
 export interface LocationFilters extends PageParams {
   name?: string;
@@ -19,27 +19,27 @@ export const locationKeys = {
 };
 
 async function fetchList(filters: LocationFilters): Promise<Page<LocationDto>> {
-  const { data } = await api.get<Page<LocationDto>>(`${BASE}/findAll`, { params: buildPageParams(filters) });
+  const { data } = await api.get<Page<LocationDto>>(BASE, { params: buildPageParams(filters) });
   return data;
 }
 
 async function fetchById(id: number): Promise<LocationDto> {
-  const { data } = await api.get<LocationDto>(`${BASE}/find/${id}`);
+  const { data } = await api.get<LocationDto>(`${BASE}/${id}`);
   return data;
 }
 
 async function create(dto: Omit<LocationDto, 'id'>): Promise<LocationDto> {
-  const { data } = await api.post<LocationDto>(`${BASE}/save`, dto);
+  const { data } = await api.post<LocationDto>(BASE, dto);
   return data;
 }
 
 async function update(dto: LocationDto): Promise<LocationDto> {
-  const { data } = await api.put<LocationDto>(`${BASE}/update/${dto.id}`, dto);
+  const { data } = await api.put<LocationDto>(`${BASE}/${dto.id}`, dto);
   return data;
 }
 
 async function remove(id: number): Promise<void> {
-  await api.delete(`${BASE}/delete/${id}`);
+  await api.delete(`${BASE}/${id}`);
 }
 
 export function useLocationList(filters: LocationFilters) {

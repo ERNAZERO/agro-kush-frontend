@@ -5,7 +5,7 @@ import type { Page, PageParams } from '@/types/api';
 import type { DefectStatus } from '@/types/enums';
 import { buildPageParams } from '@/utils/pageParams';
 
-const BASE = '/defect';
+const BASE = '/api/v1/defects';
 
 export interface DefectFilters extends PageParams {
   name?: string;
@@ -23,27 +23,27 @@ export const defectKeys = {
 };
 
 async function fetchList(filters: DefectFilters): Promise<Page<DefectDto>> {
-  const { data } = await api.get<Page<DefectDto>>(`${BASE}/findAll`, { params: buildPageParams(filters) });
+  const { data } = await api.get<Page<DefectDto>>(BASE, { params: buildPageParams(filters) });
   return data;
 }
 
 async function fetchById(id: number): Promise<DefectDto> {
-  const { data } = await api.get<DefectDto>(`${BASE}/find/${id}`);
+  const { data } = await api.get<DefectDto>(`${BASE}/${id}`);
   return data;
 }
 
 async function fetchByEquipment(equipmentId: number): Promise<DefectDto[]> {
-  const { data } = await api.get<DefectDto[]>(`${BASE}/findByEquipment/${equipmentId}`);
+  const { data } = await api.get<DefectDto[]>(`/api/v1/equipment/${equipmentId}/defects`);
   return data;
 }
 
 async function create(dto: Omit<DefectDto, 'id'>): Promise<DefectDto> {
-  const { data } = await api.post<DefectDto>(`${BASE}/save`, dto);
+  const { data } = await api.post<DefectDto>(BASE, dto);
   return data;
 }
 
 async function update(dto: DefectDto): Promise<DefectDto> {
-  const { data } = await api.put<DefectDto>(`${BASE}/update/${dto.id}`, dto);
+  const { data } = await api.put<DefectDto>(`${BASE}/${dto.id}`, dto);
   return data;
 }
 
@@ -53,7 +53,7 @@ async function updateStatus(id: number, status: DefectStatus): Promise<DefectDto
 }
 
 async function remove(id: number): Promise<void> {
-  await api.delete(`${BASE}/delete/${id}`);
+  await api.delete(`${BASE}/${id}`);
 }
 
 export function useDefectList(filters: DefectFilters) {

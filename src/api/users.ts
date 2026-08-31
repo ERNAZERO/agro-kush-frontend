@@ -4,7 +4,7 @@ import type { UserDto } from '@/types/dto';
 import type { Page, PageParams } from '@/types/api';
 import { buildPageParams } from '@/utils/pageParams';
 
-const BASE = '/user';
+const BASE = '/api/v1/users';
 
 export const userKeys = {
   all: ['users'] as const,
@@ -21,23 +21,23 @@ async function fetchMe(): Promise<UserDto> {
 }
 
 async function fetchUserList(filters: PageParams): Promise<Page<UserDto>> {
-  const { data } = await api.get<Page<UserDto>>(`${BASE}/findAll`, { params: buildPageParams(filters) });
+  const { data } = await api.get<Page<UserDto>>(BASE, { params: buildPageParams(filters) });
   return data;
 }
 
 async function fetchUserById(id: number): Promise<UserDto> {
-  const { data } = await api.get<UserDto>(`${BASE}/find/${id}`);
+  const { data } = await api.get<UserDto>(`${BASE}/${id}`);
   return data;
 }
 
 // Path {id} is unused by UserController#update — the backend reads dto.getId() instead.
 async function updateUser(dto: UserDto): Promise<UserDto> {
-  const { data } = await api.put<UserDto>(`${BASE}/update/${dto.id}`, dto);
+  const { data } = await api.put<UserDto>(`${BASE}/${dto.id}`, dto);
   return data;
 }
 
 async function deleteUser(id: number): Promise<void> {
-  await api.delete(`${BASE}/delete/${id}`);
+  await api.delete(`${BASE}/${id}`);
 }
 
 export function useMe(enabled = true) {

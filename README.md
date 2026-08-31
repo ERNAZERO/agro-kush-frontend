@@ -16,12 +16,44 @@ entities — no mock data, no invented endpoints.
 
 ```bash
 npm install
-cp .env.example .env   # set VITE_API_URL to your backend, defaults to http://localhost:8080
+cp .env.example .env   # leave VITE_API_URL empty: the dev server proxies /api itself
 npm run dev
 ```
 
-The backend must be running with a non-`local` Spring profile (`dev` or `prod`)
-for JWT authentication to actually be enforced — see "Backend issues" below.
+This expects the backend on `http://localhost:8080` — either `docker compose up`
+in `AgroKushProject` (which binds it to loopback) or `./mvnw spring-boot:run`
+there. It must run with a non-`local` Spring profile (`dev` or `prod`) for JWT
+authentication to actually be enforced — see "Backend issues" below.
+
+## Docker
+
+This repository builds an image but does not define a stack of its own: the SPA
+is useless without the API, and nginx proxies to a `backend` service that only
+exists in the other compose network. The full stack lives in `AgroKushProject`'s
+`docker-compose.yml`, with this repository checked out next to it:
+
+```bash
+docker compose up --build
+```
+
+That serves the app on <http://localhost:3000> and proxies everything under
+`/api/` to the backend, so the browser only ever talks to one origin.
+
+Notes:
+
+- The image is built with an **empty** `VITE_API_URL`, so the bundle uses
+  relative paths and the same image works in every environment. The backend's
+  address is proxy configuration, not a build input. Set `VITE_API_URL` to an
+  absolute URL only if you deliberately want cross-origin calls — and remember
+  Vite inlines it at build time, so changing it needs a rebuild, not a restart.
+- `nginx.conf` forwards `/api/` to `backend:8080` unchanged (no prefix
+  rewriting: the backend already serves `/api/v1/...`). No SPA route starts with
+  `/api`, so pages and API paths never collide.
+- Unknown paths fall back to `index.html` so react-router deep links survive a
+  refresh; hashed files under `/assets/` get a one-year immutable cache and
+  `index.html` gets `no-cache`.
+- `npm run dev` mirrors this through Vite's own proxy (`vite.config.ts`), which
+  forwards `/api` to `http://localhost:8080`. Dev and production behave the same.
 
 ## Project structure
 
@@ -41,27 +73,49 @@ src/
 
 ## API map
 
-Base URL: `VITE_API_URL` (e.g. `http://localhost:8080`). Note that **only** the
-auth endpoints are prefixed with `/api/v1`; every other controller is mounted
-at its own root path (see "Backend issues" #1).
+Base URL: `VITE_API_URL` — `http://localhost:8080` when calling the backend
+cross-origin, or **empty** when the API is proxied under the same origin (paths
+below already start with `/api/v1`, so no extra prefix is needed). Each
+resource is a collection with the same five operations — shown here for
+`equipment`, identical for `locations`, `materials`, `spare-parts`, `tasks`,
+`meters`, `defects` and `users`:
+
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/api/v1/equipment` | create → 201 |
+| GET | `/api/v1/equipment` | list → `Page<T>`, plus this collection's filters |
+| GET | `/api/v1/equipment/{id}` | read one |
+| PUT | `/api/v1/equipment/{id}` | replace; the path `{id}` wins over the body |
+| DELETE | `/api/v1/equipment/{id}` | → 204 |
+
+Filters accepted by each collection `GET` (always alongside `page`, `size`, `sort`):
+
+| Collection | Filters |
+|---|---|
+| `/api/v1/equipment` | `name`, `status` |
+| `/api/v1/locations` | `name` |
+| `/api/v1/materials` | `fileName` — metadata only, see issue #2 |
+| `/api/v1/spare-parts` | `name` |
+| `/api/v1/tasks` | `name`, `status` |
+| `/api/v1/meters` | `name`, `equipmentId` |
+| `/api/v1/defects` | `name`, `equipmentId`, `defectStatus` — see issue #3 |
+| `/api/v1/users` | none; no create endpoint exists |
+
+Everything outside that pattern:
 
 | Method | Path | Auth | Notes |
 |---|---|---|---|
-| POST | `/api/v1/register` | public | body `RegisterRequest` → `AuthenticationResponse{token}` |
-| POST | `/api/v1/authenticate` | public | body `AuthenticateRequest{email,password}` → `AuthenticationResponse{token}` |
-| GET | `/user/me` | auth | current user from the JWT principal |
-| GET | `/user/find/{id}` | auth | |
-| GET | `/user/findAll?page&size&sort` | auth | |
-| PUT | `/user/update/{id}` | auth | body must include `id`; path `{id}` is ignored server-side |
-| DELETE | `/user/delete/{id}` | auth | |
-| POST/PUT/GET/DELETE | `/equipment/save`, `/update/{id}`, `/find/{id}`, `/findAll?name&status&page&size&sort`, `/delete/{id}` | auth | |
-| POST/PUT/GET/DELETE | `/location/save`, `/update/{id}`, `/find/{id}`, `/findAll?name&page&size&sort`, `/delete/{id}` | auth | |
-| POST/PUT/GET/DELETE | `/material/save`, `/update/{id}`, `/find/{id}`, `/findAll?fileName&page&size&sort`, `/delete/{id}` | auth | metadata only, see issue #2 |
-| POST/PUT/GET/DELETE | `/meter/save`, `/update/{id}`, `/find/{id}`, `/findAll?name&equipmentId&page&size&sort`, `/findByEquipment/{equipmentId}`, `/delete/{id}` | auth | |
-| POST/GET/DELETE | `/meter/{meterId}/readings`, `/meter/{meterId}/readings?from&to&page&size&sort`, `/meter/{meterId}/readings/latest`, `/meter/{meterId}/readings/total?from&to`, `/meter/{meterId}/readings/{id}` | auth | `from`/`to` are ISO `LocalDateTime` |
-| POST/PUT/GET/DELETE | `/sparePart/save`, `/update/{id}`, `/find/{id}`, `/findAll?name&page&size&sort`, `/delete/{id}` | auth | |
-| POST/PUT/GET/PATCH/DELETE | `/task/save`, `/update/{id}`, `/find/{id}`, `/findAll?name&status&page&size&sort`, `/delete/{id}` | auth | |
-| POST/PUT/GET/PATCH/DELETE | `/defect/save`, `/update/{id}`, `/find/{id}`, `/findAll?name&equipmentId&defectStatus&page&size&sort`, `/findByEquipment/{equipmentId}`, `/{id}/status?status=`, `/delete/{id}` | auth | see issue #3 |
+| POST | `/api/v1/register` | public | `RegisterRequest` → `AuthenticationResponse{token}` |
+| POST | `/api/v1/authenticate` | public | `AuthenticateRequest{email,password}` → `{token}` |
+| GET | `/api/v1/users/me` | auth | current user from the JWT principal |
+| GET | `/api/v1/equipment/{id}/meters` | auth | `List<MeterDto>` |
+| GET | `/api/v1/equipment/{id}/defects` | auth | `List<DefectDto>` |
+| PATCH | `/api/v1/defects/{id}/status?status=` | auth | see issue #3 |
+| POST | `/api/v1/meters/{meterId}/readings` | auth | body carries no `meterId` — the path does |
+| GET | `/api/v1/meters/{meterId}/readings?from&to&page&size&sort` | auth | `from`/`to` are ISO `LocalDateTime` |
+| GET | `/api/v1/meters/{meterId}/readings/latest` | auth | |
+| GET | `/api/v1/meters/{meterId}/readings/total?from&to` | auth | |
+| DELETE | `/api/v1/meters/{meterId}/readings/{id}` | auth | |
 
 All list endpoints return Spring's `Page<T>` shape (`content`, `totalElements`,
 `totalPages`, `number`, ...). Errors follow `GlobalExceptionHandler`'s shapes:
@@ -72,10 +126,9 @@ error}` for everything else (404/409/401/500).
 
 Per the brief, these are documented rather than silently worked around:
 
-1. **Inconsistent base path.** `AuthenticationController` is the only
-   controller mapped under `/api/v1`; every other controller (`/equipment`,
-   `/location`, `/task`, ...) has no shared prefix. The frontend's `api/*.ts`
-   modules hardcode each path exactly as the backend exposes it.
+1. ~~**Inconsistent base path.**~~ Fixed: every controller now sits under
+   `/api/v1` with REST-shaped collection paths, so `api/*.ts` no longer has to
+   special-case the auth endpoints.
 2. **`Material` has no file transfer endpoint.** The entity stores the actual
    bytes (`Material.data: byte[]`), and `MaterialDto.downloadUrl` exists, but
    no controller method ever populates `downloadUrl` or accepts/streams file
@@ -83,11 +136,11 @@ Per the brief, these are documented rather than silently worked around:
    type, size, links to a defect/equipment) only — there's no way to actually
    upload or download the underlying file through this API.
    **Suggested backend fix:** add multipart upload (`POST
-   /material/{id}/data`) and a byte-streaming download endpoint, and have
+   /api/v1/materials/{id}/data`) and a byte-streaming download endpoint, and have
    `MaterialServiceImpl` populate `downloadUrl`.
 3. **`DefectDto` never exposes `defectStatus`.** The entity has a
-   `defectStatus` field, `GET /defect/findAll` accepts a `defectStatus` filter
-   that works server-side, and `PATCH /defect/{id}/status` updates it — but
+   `defectStatus` field, `GET /api/v1/defects` accepts a `defectStatus` filter
+   that works server-side, and `PATCH /api/v1/defects/{id}/status` updates it — but
    `DefectMapper` doesn't map the field onto `DefectDto`, so no response body
    (list, find-by-id, or the status-patch response) ever contains a defect's
    current status. The Defect list/detail pages can filter and set status but
@@ -95,14 +148,10 @@ Per the brief, these are documented rather than silently worked around:
    **Suggested backend fix:** add `@Mapping` (implicit, since names match) for
    `defectStatus` in `DefectMapper`, or add it explicitly if MapStruct isn't
    picking it up.
-4. **Update endpoints ignore their `{id}` path variable.** `UserController`,
-   `EquipmentController`, `LocationController`, `MaterialController`,
-   `MeterController`, `SparePartController`, `TaskController`, and
-   `DefectController` all take `@PathVariable Long id` on `PUT /update/{id}`
-   but never read it — the service layer uses `dto.getId()` from the request
-   body instead. Functionally harmless as long as the body's `id` is correct
-   (which this frontend always ensures), but the path variable is dead code
-   and could mislead API consumers who assume REST conventions.
+4. ~~**Update endpoints ignore their `{id}` path variable.**~~ Fixed: every
+   `PUT /api/v1/<collection>/{id}` now copies the path id onto the body before
+   the service runs, so the URL is the authoritative identifier.
+
 5. **`RegisterRequest.username` is collected but discarded.** The register
    form requires a `username`, but `AuthenticationService.register()` never
    reads it and the `User` entity has no `username` column — only

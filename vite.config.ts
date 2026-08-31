@@ -14,4 +14,13 @@ export default defineConfig({
       '@': path.resolve(dirname, './src'),
     },
   },
+  // Mirrors what nginx does in the container: the app talks to its own origin and
+  // everything under /api is forwarded to the backend, so dev and production share
+  // one setup and CORS is never involved. No path rewriting — the backend serves
+  // these paths verbatim.
+  server: {
+    proxy: {
+      '/api': 'http://localhost:8080',
+    },
+  },
 })

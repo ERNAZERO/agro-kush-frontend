@@ -4,7 +4,7 @@ import type { MeterDto } from '@/types/dto';
 import type { Page, PageParams } from '@/types/api';
 import { buildPageParams } from '@/utils/pageParams';
 
-const BASE = '/meter';
+const BASE = '/api/v1/meters';
 
 export interface MeterFilters extends PageParams {
   name?: string;
@@ -21,32 +21,32 @@ export const meterKeys = {
 };
 
 async function fetchList(filters: MeterFilters): Promise<Page<MeterDto>> {
-  const { data } = await api.get<Page<MeterDto>>(`${BASE}/findAll`, { params: buildPageParams(filters) });
+  const { data } = await api.get<Page<MeterDto>>(BASE, { params: buildPageParams(filters) });
   return data;
 }
 
 async function fetchById(id: number): Promise<MeterDto> {
-  const { data } = await api.get<MeterDto>(`${BASE}/find/${id}`);
+  const { data } = await api.get<MeterDto>(`${BASE}/${id}`);
   return data;
 }
 
 async function fetchByEquipment(equipmentId: number): Promise<MeterDto[]> {
-  const { data } = await api.get<MeterDto[]>(`${BASE}/findByEquipment/${equipmentId}`);
+  const { data } = await api.get<MeterDto[]>(`/api/v1/equipment/${equipmentId}/meters`);
   return data;
 }
 
 async function create(dto: Omit<MeterDto, 'id'>): Promise<MeterDto> {
-  const { data } = await api.post<MeterDto>(`${BASE}/save`, dto);
+  const { data } = await api.post<MeterDto>(BASE, dto);
   return data;
 }
 
 async function update(dto: MeterDto): Promise<MeterDto> {
-  const { data } = await api.put<MeterDto>(`${BASE}/update/${dto.id}`, dto);
+  const { data } = await api.put<MeterDto>(`${BASE}/${dto.id}`, dto);
   return data;
 }
 
 async function remove(id: number): Promise<void> {
-  await api.delete(`${BASE}/delete/${id}`);
+  await api.delete(`${BASE}/${id}`);
 }
 
 export function useMeterList(filters: MeterFilters) {
