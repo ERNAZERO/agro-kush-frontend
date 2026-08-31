@@ -5,7 +5,7 @@ import type { Page, PageParams } from '@/types/api';
 import type { EquipmentStatus } from '@/types/enums';
 import { buildPageParams } from '@/utils/pageParams';
 
-const BASE = '/equipment';
+const BASE = '/api/v1/equipment';
 
 export interface EquipmentFilters extends PageParams {
   name?: string;
@@ -21,27 +21,27 @@ export const equipmentKeys = {
 };
 
 async function fetchList(filters: EquipmentFilters): Promise<Page<EquipmentDto>> {
-  const { data } = await api.get<Page<EquipmentDto>>(`${BASE}/findAll`, { params: buildPageParams(filters) });
+  const { data } = await api.get<Page<EquipmentDto>>(BASE, { params: buildPageParams(filters) });
   return data;
 }
 
 async function fetchById(id: number): Promise<EquipmentDto> {
-  const { data } = await api.get<EquipmentDto>(`${BASE}/find/${id}`);
+  const { data } = await api.get<EquipmentDto>(`${BASE}/${id}`);
   return data;
 }
 
 async function create(dto: Omit<EquipmentDto, 'id'>): Promise<EquipmentDto> {
-  const { data } = await api.post<EquipmentDto>(`${BASE}/save`, dto);
+  const { data } = await api.post<EquipmentDto>(BASE, dto);
   return data;
 }
 
 async function update(dto: EquipmentDto): Promise<EquipmentDto> {
-  const { data } = await api.put<EquipmentDto>(`${BASE}/update/${dto.id}`, dto);
+  const { data } = await api.put<EquipmentDto>(`${BASE}/${dto.id}`, dto);
   return data;
 }
 
 async function remove(id: number): Promise<void> {
-  await api.delete(`${BASE}/delete/${id}`);
+  await api.delete(`${BASE}/${id}`);
 }
 
 export function useEquipmentList(filters: EquipmentFilters) {

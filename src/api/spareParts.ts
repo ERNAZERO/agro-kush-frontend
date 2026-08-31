@@ -4,7 +4,7 @@ import type { SparePartDto } from '@/types/dto';
 import type { Page, PageParams } from '@/types/api';
 import { buildPageParams } from '@/utils/pageParams';
 
-const BASE = '/sparePart';
+const BASE = '/api/v1/spare-parts';
 
 export interface SparePartFilters extends PageParams {
   name?: string;
@@ -19,27 +19,27 @@ export const sparePartKeys = {
 };
 
 async function fetchList(filters: SparePartFilters): Promise<Page<SparePartDto>> {
-  const { data } = await api.get<Page<SparePartDto>>(`${BASE}/findAll`, { params: buildPageParams(filters) });
+  const { data } = await api.get<Page<SparePartDto>>(BASE, { params: buildPageParams(filters) });
   return data;
 }
 
 async function fetchById(id: number): Promise<SparePartDto> {
-  const { data } = await api.get<SparePartDto>(`${BASE}/find/${id}`);
+  const { data } = await api.get<SparePartDto>(`${BASE}/${id}`);
   return data;
 }
 
 async function create(dto: Omit<SparePartDto, 'id' | 'equipmentNames'>): Promise<SparePartDto> {
-  const { data } = await api.post<SparePartDto>(`${BASE}/save`, dto);
+  const { data } = await api.post<SparePartDto>(BASE, dto);
   return data;
 }
 
 async function update(dto: Omit<SparePartDto, 'equipmentNames'>): Promise<SparePartDto> {
-  const { data } = await api.put<SparePartDto>(`${BASE}/update/${dto.id}`, dto);
+  const { data } = await api.put<SparePartDto>(`${BASE}/${dto.id}`, dto);
   return data;
 }
 
 async function remove(id: number): Promise<void> {
-  await api.delete(`${BASE}/delete/${id}`);
+  await api.delete(`${BASE}/${id}`);
 }
 
 export function useSparePartList(filters: SparePartFilters) {

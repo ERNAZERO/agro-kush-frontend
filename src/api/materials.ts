@@ -4,7 +4,7 @@ import type { MaterialDto } from '@/types/dto';
 import type { Page, PageParams } from '@/types/api';
 import { buildPageParams } from '@/utils/pageParams';
 
-const BASE = '/material';
+const BASE = '/api/v1/materials';
 
 export interface MaterialFilters extends PageParams {
   fileName?: string;
@@ -19,27 +19,27 @@ export const materialKeys = {
 };
 
 async function fetchList(filters: MaterialFilters): Promise<Page<MaterialDto>> {
-  const { data } = await api.get<Page<MaterialDto>>(`${BASE}/findAll`, { params: buildPageParams(filters) });
+  const { data } = await api.get<Page<MaterialDto>>(BASE, { params: buildPageParams(filters) });
   return data;
 }
 
 async function fetchById(id: number): Promise<MaterialDto> {
-  const { data } = await api.get<MaterialDto>(`${BASE}/find/${id}`);
+  const { data } = await api.get<MaterialDto>(`${BASE}/${id}`);
   return data;
 }
 
 async function create(dto: Omit<MaterialDto, 'id'>): Promise<MaterialDto> {
-  const { data } = await api.post<MaterialDto>(`${BASE}/save`, dto);
+  const { data } = await api.post<MaterialDto>(BASE, dto);
   return data;
 }
 
 async function update(dto: MaterialDto): Promise<MaterialDto> {
-  const { data } = await api.put<MaterialDto>(`${BASE}/update/${dto.id}`, dto);
+  const { data } = await api.put<MaterialDto>(`${BASE}/${dto.id}`, dto);
   return data;
 }
 
 async function remove(id: number): Promise<void> {
-  await api.delete(`${BASE}/delete/${id}`);
+  await api.delete(`${BASE}/${id}`);
 }
 
 export function useMaterialList(filters: MaterialFilters) {

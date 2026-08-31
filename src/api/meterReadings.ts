@@ -4,7 +4,7 @@ import type { MeterReadingDto } from '@/types/dto';
 import type { Page, PageParams } from '@/types/api';
 import { buildPageParams } from '@/utils/pageParams';
 
-const base = (meterId: number) => `/meter/${meterId}/readings`;
+const base = (meterId: number) => `/api/v1/meters/${meterId}/readings`;
 
 export interface ReadingFilters extends PageParams {
   from?: string; // ISO LocalDateTime — only applied when both from and to are set

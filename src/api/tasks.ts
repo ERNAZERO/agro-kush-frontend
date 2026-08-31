@@ -5,7 +5,7 @@ import type { Page, PageParams } from '@/types/api';
 import type { TaskStatus } from '@/types/enums';
 import { buildPageParams } from '@/utils/pageParams';
 
-const BASE = '/task';
+const BASE = '/api/v1/tasks';
 
 export interface TaskFilters extends PageParams {
   name?: string;
@@ -21,27 +21,27 @@ export const taskKeys = {
 };
 
 async function fetchList(filters: TaskFilters): Promise<Page<TaskDto>> {
-  const { data } = await api.get<Page<TaskDto>>(`${BASE}/findAll`, { params: buildPageParams(filters) });
+  const { data } = await api.get<Page<TaskDto>>(BASE, { params: buildPageParams(filters) });
   return data;
 }
 
 async function fetchById(id: number): Promise<TaskDto> {
-  const { data } = await api.get<TaskDto>(`${BASE}/find/${id}`);
+  const { data } = await api.get<TaskDto>(`${BASE}/${id}`);
   return data;
 }
 
 async function create(dto: Omit<TaskDto, 'id'>): Promise<TaskDto> {
-  const { data } = await api.post<TaskDto>(`${BASE}/save`, dto);
+  const { data } = await api.post<TaskDto>(BASE, dto);
   return data;
 }
 
 async function update(dto: TaskDto): Promise<TaskDto> {
-  const { data } = await api.put<TaskDto>(`${BASE}/update/${dto.id}`, dto);
+  const { data } = await api.put<TaskDto>(`${BASE}/${dto.id}`, dto);
   return data;
 }
 
 async function remove(id: number): Promise<void> {
-  await api.delete(`${BASE}/delete/${id}`);
+  await api.delete(`${BASE}/${id}`);
 }
 
 export function useTaskList(filters: TaskFilters) {
